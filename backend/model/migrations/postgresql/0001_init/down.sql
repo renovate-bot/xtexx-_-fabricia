@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS `branch`;
+DROP TABLE IF EXISTS `pkg`;
+DROP TABLE IF EXISTS `pkg_target`;
+DROP TABLE IF EXISTS `job_queue`;

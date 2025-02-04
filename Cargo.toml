@@ -1,0 +1,39 @@
+[workspace]
+resolver = "2"
+members = ["backend/*", "axis/*", "crayon/crayon"]
+
+[workspace.dependencies]
+tokio = { version = "1.43", features = ["full"] }
+uuid = { version = "1.12", features = ["v5", "v7", "fast-rng", "serde"] }
+time = { version = "0.3" }
+serde_json = { version = "1.0" }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = { version = "2.0" }
+anyhow = { version = "1.0" }
+diesel = { version = "2.2.0", features = [
+	"postgres",
+	"sqlite",
+	"returning_clauses_for_sqlite_3_35",
+	"serde_json",
+	"time",
+	"uuid",
+] }
+diesel-async = { version = "0.5.2", features = [
+	"postgres",
+	"deadpool",
+	"async-connection-wrapper",
+] }
+diesel_migrations = { version = "2.2.0", features = ["postgres", "sqlite"] }
+deadpool = { version = "0.12.1", default-features = false, features = [
+	"rt_tokio_1",
+	"managed",
+] }
+axum = { version = "0.8.1", features = ["http2", "ws"] }
+clap = { version = "4.5.27", features = ["derive", "env"] }
+toml = { version = "0.8.19" }
+tracing = { version = "0.1.41", features = ["release_max_level_info"] }
+tracing-subscriber = { version = "0.3.19" }
+futures = { version = "0.3.31" }
+kstring = { version = "2.0.2" }
+redis = { version = "0.28.2", features = ["tokio-comp", "uuid", "json"] }
+rand = { version = "0.9.0" }

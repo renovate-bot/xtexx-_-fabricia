@@ -1,0 +1,23 @@
+[package]
+name = "fabricia-backend-model"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+thiserror.workspace = true
+diesel.workspace = true
+diesel-async.workspace = true
+diesel_migrations.workspace = true
+deadpool.workspace = true
+# libsqlite3, openssl required by diesel
+libsqlite3-sys = { version = "0.31", features = ["bundled"] }
+uuid.workspace = true
+time.workspace = true
+serde.workspace = true
+tracing.workspace = true
+futures.workspace = true
+serde_json.workspace = true
+kstring.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
