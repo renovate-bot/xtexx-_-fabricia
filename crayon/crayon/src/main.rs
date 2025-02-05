@@ -27,17 +27,14 @@ async fn main() -> Result<()> {
 	)?;
 
 	let config_path = &args.config;
-	let config =
-		toml::from_str::<CrayonConfig>(&fs::read_to_string(config_path)?)?;
+	let config = toml::from_str::<CrayonConfig>(&fs::read_to_string(config_path)?)?;
 	info!("loaded configuration from file: {:?}", config_path);
 
 	info!("initializing backend services ...");
-	let backend_services =
-		BackendServices::new(config.clone().try_into()?).await?;
+	let backend_services = BackendServices::new(config.clone().try_into()?).await?;
 	info!("initialized backend services");
 
-	let router =
-		routes::make_router(Arc::new(config.clone()), backend_services)?;
+	let router = routes::make_router(Arc::new(config.clone()), backend_services)?;
 
 	let listen_addr = config.web.listen;
 	if let Some(path) = listen_addr.strip_prefix("unix://") {

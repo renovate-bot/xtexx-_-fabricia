@@ -8,4 +8,5 @@ pub mod branch;
 pub mod bus;
 pub mod db;
 pub mod job;
+pub mod package;
 pub mod target;

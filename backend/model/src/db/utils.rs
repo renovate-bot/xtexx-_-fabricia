@@ -6,12 +6,13 @@ use std::{
 };
 
 use diesel::{
+	AppearsOnTable, Expression,
 	deserialize::{self, FromSql, FromSqlRow},
-	expression::AsExpression,
+	expression::{AsExpression, NonAggregate},
 	pg::{Pg, PgValue},
-	query_builder::QueryId,
+	query_builder::{QueryFragment, QueryId},
 	serialize::{self, IsNull, Output, ToSql},
-	sql_types::{Binary, Jsonb, SqlType, VarChar},
+	sql_types::{Binary, Bool, Jsonb, SqlType, VarChar},
 	sqlite::{Sqlite, SqliteValue},
 };
 use uuid::Uuid;
@@ -71,10 +72,7 @@ impl FromSql<XUuid, Sqlite> for XUuidVal {
 }
 
 impl ToSql<XUuid, Sqlite> for XUuidVal {
-	fn to_sql<'b>(
-		&'b self,
-		out: &mut Output<'b, '_, Sqlite>,
-	) -> serialize::Result {
+	fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Sqlite>) -> serialize::Result {
 		<[u8; 16] as ToSql<Binary, Sqlite>>::to_sql(self.as_bytes(), out)
 	}
 }
@@ -143,10 +141,7 @@ impl FromSql<XJson, Sqlite> for XJsonVal {
 }
 
 impl ToSql<XJson, Sqlite> for XJsonVal {
-	fn to_sql<'b>(
-		&'b self,
-		out: &mut Output<'b, '_, Sqlite>,
-	) -> serialize::Result {
+	fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Sqlite>) -> serialize::Result {
 		out.set_value(serde_json::to_string(self.as_ref())?);
 		Ok(IsNull::No)
 	}
@@ -156,4 +151,20 @@ impl Display for XJsonVal {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		Display::fmt(&self.0, f)
 	}
+}
+
+pub trait WherePredicate<T>
+where
+	Self: Send + AppearsOnTable<T> + QueryId,
+	Self: QueryFragment<Pg> + QueryFragment<Sqlite>,
+	Self: Expression<SqlType = Bool> + NonAggregate,
+{
+}
+
+impl<T, V> WherePredicate<V> for T
+where
+	Self: Send + AppearsOnTable<V> + QueryId,
+	Self: QueryFragment<Pg> + QueryFragment<Sqlite>,
+	Self: Expression<SqlType = Bool> + NonAggregate,
+{
 }

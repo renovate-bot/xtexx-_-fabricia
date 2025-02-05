@@ -2,9 +2,7 @@
 
 use std::{fmt::Debug, ops::Deref};
 
-use deadpool::managed::{
-	Manager, Object, Pool, PoolError, RecycleError, RecycleResult,
-};
+use deadpool::managed::{Manager, Object, Pool, PoolError, RecycleError, RecycleResult};
 use fabricia_backend_model::bus::LockKey;
 use rand::Rng;
 use redis::{Client, Pipeline, aio::MultiplexedConnection};
@@ -22,7 +20,12 @@ pub struct RedisConfig {
 	/// For example: `redis://127.0.0.1/`.
 	pub url: String,
 	/// The maximum number of connections managed by the pool.
+	#[serde(default = "default_max_conns")]
 	pub max_connections: usize,
+}
+
+fn default_max_conns() -> usize {
+	3
 }
 
 pub struct RedisService {
@@ -46,18 +49,11 @@ impl RedisService {
 		Ok(self.pool.get().await?)
 	}
 
-	pub async fn lock(
-		&self,
-		key: LockKey,
-		ttl: Duration,
-	) -> RedisResult<LockGuard> {
+	pub async fn lock<K: Into<LockKey>>(&self, key: K, ttl: Duration) -> RedisResult<LockGuard> {
+		let key = key.into().to_key();
 		let mut delay = Duration::milliseconds(50);
 		loop {
-			match self
-				.locker
-				.lock(key.to_key().as_bytes(), ttl.try_into()?)
-				.await
-			{
+			match self.locker.lock(key.as_bytes(), ttl.try_into()?).await {
 				Ok(lock) => return Ok(lock.into()),
 				Err(rslock::LockError::TtlTooLarge) => {
 					return Err(rslock::LockError::TtlTooLarge.into());

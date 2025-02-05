@@ -6,14 +6,19 @@ diesel::table! {
 		/// This should be equal to the Git branch name, and should not
 		/// be changed after branch insertion.
 		name -> Varchar,
-		state -> Int2,
-		status -> Varchar,
+		base -> Nullable<BigInt>,
+		status -> Int2,
+		status_msg -> Nullable<Varchar>,
 		/// Priority of this branch.
 		///
 		/// By default, the base priority should be 100.
 		priority -> Int2,
+		/// Commit OID of the current tracked metadata.
+		commit -> Nullable<Binary>,
+		/// Tracking mode [crate::branch::SqlTrackingMode].
+		tracking -> SmallInt,
 		/// Count of tracked packages in this branch.
-		total_srcpkgs->Int4,
+		total_srcpkgs -> Int4,
 	}
 }
 
@@ -33,7 +38,7 @@ diesel::table! {
 		/// Started time of this job.
 		///
 		/// This column is null when and only when the job is not started.
-		started_at -> Nullable<Timestamp>
+		started_at -> Nullable<Timestamp>,
 	}
 }
 
@@ -47,8 +52,8 @@ diesel::table! {
 		branch -> BigInt,
 		name -> VarChar,
 		section -> VarChar,
-		state -> Int2,
-		status -> VarChar,
+		status -> Int2,
+		status_msg -> VarChar,
 		data -> XJson,
 	}
 }
@@ -66,7 +71,7 @@ diesel::table! {
 		branch -> BigInt,
 		package -> XUuid,
 		target -> BigInt,
-		state -> Int2,
+		status -> Int2,
 		data -> XJson,
 	}
 }

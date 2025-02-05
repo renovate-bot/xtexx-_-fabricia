@@ -1,14 +1,13 @@
 use diesel::{
-	QueryResult, RunQueryDsl, SqliteConnection,
-	connection::{
-		AnsiTransactionManager, SimpleConnection, TransactionManager,
-	},
-	dsl::Limit,
+	QueryResult, Queryable, RunQueryDsl, Selectable, SelectableHelper, SqliteConnection,
+	connection::{AnsiTransactionManager, SimpleConnection, TransactionManager},
+	dsl::{AsSelect, Limit},
+	expression::{AsExpression, TypedExpressionType},
 	migration::MigrationVersion,
 	pg::Pg,
-	query_builder::AsQuery,
-	query_dsl::methods::{ExecuteDsl, LimitDsl, LoadQuery},
-	sql_types::HasSqlType,
+	query_builder::{AsQuery, QueryId},
+	query_dsl::methods::{ExecuteDsl, LimitDsl, LoadQuery, SelectDsl},
+	sql_types::{self, HasSqlType, SqlType},
 	sqlite::Sqlite,
 };
 use diesel_async::{
@@ -19,13 +18,10 @@ use diesel_async::{
 	methods::{ExecuteDsl as AsyncExecuteDsl, LoadQuery as AsyncLoadQuery},
 	pooled_connection::PoolableConnection,
 };
-use diesel_migrations::{
-	EmbeddedMigrations, MigrationHarness, embed_migrations,
-};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use futures::future::{BoxFuture, FutureExt, ready};
 
 pub mod schema;
-pub mod types;
 pub mod utils;
 
 /// A specialized SQL backend.
@@ -33,6 +29,7 @@ pub trait SqlBackend: diesel::backend::Backend
 where
 	Self: HasSqlType<utils::XJson>,
 	Self: HasSqlType<utils::XUuid>,
+	Self: HasSqlType<sql_types::Text>,
 {
 	type Connection;
 }
@@ -58,9 +55,7 @@ impl BoxedSqlConn {
 	pub fn ping(&mut self) -> BoxFuture<Result<(), diesel::result::Error>> {
 		match self {
 			BoxedSqlConn::Pg(conn) => conn.batch_execute("SELECT 1").boxed(),
-			BoxedSqlConn::Sqlite(conn) => {
-				ready(conn.batch_execute("SELECT 1")).boxed()
-			}
+			BoxedSqlConn::Sqlite(conn) => ready(conn.batch_execute("SELECT 1")).boxed(),
 		}
 	}
 
@@ -93,8 +88,7 @@ impl BoxedSqlConn {
 			Ok(value) => {
 				match self {
 					BoxedSqlConn::Pg(conn) => {
-						AsyncAnsiTransactionManager::commit_transaction(conn)
-							.await?;
+						AsyncAnsiTransactionManager::commit_transaction(conn).await?;
 					}
 					BoxedSqlConn::Sqlite(conn) => {
 						AnsiTransactionManager::commit_transaction(conn)?;
@@ -105,8 +99,7 @@ impl BoxedSqlConn {
 			Err(user_error) => {
 				let result = match self {
 					BoxedSqlConn::Pg(conn) => {
-						AsyncAnsiTransactionManager::rollback_transaction(conn)
-							.await
+						AsyncAnsiTransactionManager::rollback_transaction(conn).await
 					}
 					BoxedSqlConn::Sqlite(conn) => {
 						AnsiTransactionManager::rollback_transaction(conn)
@@ -137,10 +130,7 @@ impl<'query> BoxedSqlConn {
 	/// probably be used instead.
 	///
 	/// Dispatches [RunQueryDsl::execute].
-	pub fn execute<Q>(
-		&mut self,
-		query: Q,
-	) -> BoxFuture<'query, QueryResult<usize>>
+	pub fn execute<Q>(&mut self, query: Q) -> BoxFuture<'query, QueryResult<usize>>
 	where
 		Q: AsQuery,
 		Q: AsyncExecuteDsl<AsyncPgConnection> + 'query,
@@ -148,9 +138,7 @@ impl<'query> BoxedSqlConn {
 	{
 		match self {
 			BoxedSqlConn::Pg(conn) => AsyncExecuteDsl::execute(query, conn),
-			BoxedSqlConn::Sqlite(conn) => {
-				ready(ExecuteDsl::execute(query, conn)).boxed()
-			}
+			BoxedSqlConn::Sqlite(conn) => ready(ExecuteDsl::execute(query, conn)).boxed(),
 		}
 	}
 
@@ -160,10 +148,7 @@ impl<'query> BoxedSqlConn {
 	/// [`execute`] should be used instead.
 	///
 	/// Dispatches [RunQueryDsl::load].
-	pub fn load<'conn, Q, U>(
-		&'conn mut self,
-		query: Q,
-	) -> BoxFuture<'query, QueryResult<Vec<U>>>
+	pub fn load<'conn, Q, U>(&'conn mut self, query: Q) -> BoxFuture<'query, QueryResult<Vec<U>>>
 	where
 		Q: Send,
 		Q: AsyncLoadQuery<'query, AsyncPgConnection, U> + 'query,
@@ -172,12 +157,8 @@ impl<'query> BoxedSqlConn {
 		'conn: 'query,
 	{
 		match self {
-			BoxedSqlConn::Pg(conn) => {
-				AsyncRunQueryDsl::load(query, conn).boxed()
-			}
-			BoxedSqlConn::Sqlite(conn) => {
-				ready(RunQueryDsl::load(query, conn)).boxed()
-			}
+			BoxedSqlConn::Pg(conn) => AsyncRunQueryDsl::load(query, conn).boxed(),
+			BoxedSqlConn::Sqlite(conn) => ready(RunQueryDsl::load(query, conn)).boxed(),
 		}
 	}
 
@@ -188,10 +169,7 @@ impl<'query> BoxedSqlConn {
 	/// get back a `Result<Option<U>>`
 	///
 	/// Dispatches [RunQueryDsl::get_result].
-	pub fn get_result<Q, U>(
-		&'query mut self,
-		query: Q,
-	) -> BoxFuture<'query, QueryResult<U>>
+	pub fn get_result<Q, U>(&'query mut self, query: Q) -> BoxFuture<'query, QueryResult<U>>
 	where
 		Q: AsQuery + Send,
 		Q: AsyncLoadQuery<'query, AsyncPgConnection, U> + 'query,
@@ -199,12 +177,8 @@ impl<'query> BoxedSqlConn {
 		U: Send + 'query,
 	{
 		match self {
-			BoxedSqlConn::Pg(conn) => {
-				AsyncRunQueryDsl::get_result(query, conn).boxed()
-			}
-			BoxedSqlConn::Sqlite(conn) => {
-				ready(RunQueryDsl::get_result(query, conn)).boxed()
-			}
+			BoxedSqlConn::Pg(conn) => AsyncRunQueryDsl::get_result(query, conn).boxed(),
+			BoxedSqlConn::Sqlite(conn) => ready(RunQueryDsl::get_result(query, conn)).boxed(),
 		}
 	}
 
@@ -236,10 +210,7 @@ impl<'query> BoxedSqlConn {
 	///
 	/// Dispatches [RunQueryDsl::first].
 	#[inline]
-	pub fn first<'conn, Q, U>(
-		&'conn mut self,
-		query: Q,
-	) -> BoxFuture<'query, QueryResult<U>>
+	pub fn first<'conn, Q, U>(&'conn mut self, query: Q) -> BoxFuture<'query, QueryResult<U>>
 	where
 		Q: AsQuery + LimitDsl + Send,
 		Limit<Q>: AsyncLoadQuery<'query, AsyncPgConnection, U> + Send + 'query,
@@ -248,21 +219,95 @@ impl<'query> BoxedSqlConn {
 		'conn: 'query,
 	{
 		match self {
-			BoxedSqlConn::Pg(conn) => {
-				AsyncRunQueryDsl::first(query, conn).boxed()
-			}
+			BoxedSqlConn::Pg(conn) => AsyncRunQueryDsl::first(query, conn).boxed(),
 			BoxedSqlConn::Sqlite(conn) => {
-				ready(RunQueryDsl::get_result(LimitDsl::limit(query, 1), conn))
-					.boxed()
+				ready(RunQueryDsl::get_result(LimitDsl::limit(query, 1), conn)).boxed()
 			}
+		}
+	}
+
+	pub fn load_select<'conn, Q, S, E>(
+		&'conn mut self,
+		query: Q,
+	) -> BoxFuture<'query, QueryResult<Vec<S>>>
+	where
+		Q: SelectDsl<AsSelect<S, Pg>>,
+		Q: SelectDsl<AsSelect<S, Sqlite>>,
+		<Q as SelectDsl<AsSelect<S, Pg>>>::Output:
+			AsyncLoadQuery<'query, AsyncPgConnection, S> + Send + 'query,
+		<Q as SelectDsl<AsSelect<S, Sqlite>>>::Output: LoadQuery<'query, SqliteConnection, S>,
+		S: Selectable<Pg> + Queryable<E, Pg>,
+		S: Selectable<Sqlite> + Queryable<E, Sqlite>,
+		<S as Selectable<Pg>>::SelectExpression: QueryId + AsExpression<E>,
+		<S as Selectable<Sqlite>>::SelectExpression: QueryId + AsExpression<E>,
+		S: Send + 'query,
+		E: TypedExpressionType + SqlType,
+		'conn: 'query,
+	{
+		match self {
+			BoxedSqlConn::Pg(conn) => AsyncRunQueryDsl::load(
+				<Q as SelectDsl<AsSelect<S, Pg>>>::select(
+					query,
+					<S as SelectableHelper<Pg>>::as_select(),
+				),
+				conn,
+			)
+			.boxed(),
+			BoxedSqlConn::Sqlite(conn) => ready(RunQueryDsl::load(
+				<Q as SelectDsl<AsSelect<S, Sqlite>>>::select(
+					query,
+					<S as SelectableHelper<Sqlite>>::as_select(),
+				),
+				conn,
+			))
+			.boxed(),
+		}
+	}
+
+	/// Loads one row.
+	///
+	/// Note that caller must set limit to 1.
+	pub fn load_one_select<'conn, Q, S, E>(
+		&'conn mut self,
+		query: Q,
+	) -> BoxFuture<'query, QueryResult<S>>
+	where
+		Q: SelectDsl<AsSelect<S, Pg>>,
+		Q: SelectDsl<AsSelect<S, Sqlite>>,
+		<Q as SelectDsl<AsSelect<S, Pg>>>::Output:
+			AsyncLoadQuery<'query, AsyncPgConnection, S> + Send + 'query,
+		<Q as SelectDsl<AsSelect<S, Sqlite>>>::Output: LoadQuery<'query, SqliteConnection, S>,
+		S: Selectable<Pg> + Queryable<E, Pg>,
+		S: Selectable<Sqlite> + Queryable<E, Sqlite>,
+		<S as Selectable<Pg>>::SelectExpression: QueryId + AsExpression<E>,
+		<S as Selectable<Sqlite>>::SelectExpression: QueryId + AsExpression<E>,
+		S: Send + 'query,
+		E: TypedExpressionType + SqlType,
+		'conn: 'query,
+	{
+		match self {
+			BoxedSqlConn::Pg(conn) => AsyncRunQueryDsl::get_result(
+				<Q as SelectDsl<AsSelect<S, Pg>>>::select(
+					query,
+					<S as SelectableHelper<Pg>>::as_select(),
+				),
+				conn,
+			)
+			.boxed(),
+			BoxedSqlConn::Sqlite(conn) => ready(RunQueryDsl::get_result(
+				<Q as SelectDsl<AsSelect<S, Sqlite>>>::select(
+					query,
+					<S as SelectableHelper<Sqlite>>::as_select(),
+				),
+				conn,
+			))
+			.boxed(),
 		}
 	}
 }
 
-const POSTGRESQL_MIGRATIONS: EmbeddedMigrations =
-	embed_migrations!("migrations/postgresql");
-const SQLITE_MIGRATIONS: EmbeddedMigrations =
-	embed_migrations!("migrations/sqlite");
+const POSTGRESQL_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/postgresql");
+const SQLITE_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/sqlite");
 
 /// Run all pending migrations.
 ///
@@ -298,14 +343,15 @@ pub fn run_migrations_sqlite(
 ) -> diesel::migration::Result<Vec<MigrationVersion<'static>>> {
 	match conn {
 		BoxedSqlConn::Pg(_) => unreachable!(),
-		BoxedSqlConn::Sqlite(conn) => conn
-			.run_pending_migrations(SQLITE_MIGRATIONS)
-			.map(|versions| {
-				versions
-					.into_iter()
-					.map(|version| version.as_owned())
-					.collect()
-			}),
+		BoxedSqlConn::Sqlite(conn) => {
+			conn.run_pending_migrations(SQLITE_MIGRATIONS)
+				.map(|versions| {
+					versions
+						.into_iter()
+						.map(|version| version.as_owned())
+						.collect()
+				})
+		}
 	}
 }
 

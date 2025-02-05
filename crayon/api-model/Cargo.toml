@@ -1,0 +1,11 @@
+[package]
+name = "fabricia-crayon-api-model"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+thiserror.workspace = true
+serde.workspace = true
+kstring.workspace = true
+fabricia-common-model = { version = "0.1.0", path = "../../common/model" }
+hex.workspace = true

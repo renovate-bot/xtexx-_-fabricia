@@ -1,6 +1,5 @@
 use fabricia_backend_service::{
-	config::BackendConfig, database::DatabaseConfig, redis::RedisConfig,
-	target::TargetConfig,
+	config::BackendConfig, database::DatabaseConfig, redis::RedisConfig, target::TargetConfig,
 };
 use serde::{Deserialize, Serialize};
 

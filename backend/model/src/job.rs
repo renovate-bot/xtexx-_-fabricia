@@ -12,9 +12,7 @@ pub enum JobCommand {
 }
 
 impl JobCommand {
-	pub fn serialize(
-		&self,
-	) -> serde_json::Result<(KString, serde_json::Value)> {
+	pub fn serialize(&self) -> serde_json::Result<(KString, serde_json::Value)> {
 		let mut value = serde_json::to_value(self)?;
 		Ok((
 			KString::from_ref(value["t"].as_str().unwrap()),
@@ -22,10 +20,7 @@ impl JobCommand {
 		))
 	}
 
-	pub fn deserialize(
-		kind: &str,
-		value: serde_json::Value,
-	) -> serde_json::Result<Self> {
+	pub fn deserialize(kind: &str, value: serde_json::Value) -> serde_json::Result<Self> {
 		let value = serde_json::json!({ "t": kind, "c": value });
 		serde_json::from_value(value)
 	}

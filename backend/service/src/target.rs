@@ -27,8 +27,7 @@ impl TargetService {
 
 		for target in config {
 			let id = TargetInfo::make_id(&target.name);
-			let arch =
-				target.arch.clone().unwrap_or_else(|| target.name.clone());
+			let arch = target.arch.clone().unwrap_or_else(|| target.name.clone());
 
 			let target = Arc::new(TargetInfo {
 				id,

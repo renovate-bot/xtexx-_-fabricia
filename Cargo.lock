@@ -513,6 +513,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "diesel_migrations",
+ "fabricia-common-model",
  "futures",
  "kstring",
  "libsqlite3-sys",
@@ -533,6 +534,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "fabricia-backend-model",
+ "fabricia-common-model",
  "futures",
  "kstring",
  "rand 0.9.0",
@@ -548,6 +550,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fabricia-common-model"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "time",
+ "uuid",
+]
+
+[[package]]
 name = "fabricia-crayon"
 version = "0.1.0"
 dependencies = [
@@ -555,12 +566,30 @@ dependencies = [
  "axum",
  "clap",
  "diesel",
+ "diesel-async",
+ "fabricia-backend-model",
  "fabricia-backend-service",
+ "fabricia-common-model",
+ "fabricia-crayon-api-model",
+ "hex",
+ "kstring",
  "serde",
+ "thiserror",
  "tokio",
  "toml",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "fabricia-crayon-api-model"
+version = "0.1.0"
+dependencies = [
+ "fabricia-common-model",
+ "hex",
+ "kstring",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -748,6 +777,15 @@ name = "hermit-abi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "hmac"

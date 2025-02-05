@@ -1,15 +1,16 @@
 use std::fmt::Debug;
 
-use deadpool::managed::{
-	Manager, Object, Pool, PoolError, RecycleError, RecycleResult,
-};
+use deadpool::managed::{Manager, Object, Pool, PoolError, RecycleError, RecycleResult};
 use diesel::{Connection, ConnectionError, SqliteConnection};
 use diesel_async::{AsyncConnection, AsyncPgConnection};
 use fabricia_backend_model::db::{BoxedSqlConn, run_migrations};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use time::Duration;
 use tokio::task::spawn_blocking;
 use tracing::{info, info_span, warn};
+
+use crate::{Result, redis::RedisService};
 
 /// Configuration for [`DatabaseService`].
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
@@ -25,7 +26,12 @@ pub struct DatabaseConfig {
 	/// The maximum number of connections managed by the pool.
 	///
 	/// When using `sqlite://:memory:`, this must be set to 1.
+	#[serde(default = "default_max_conns")]
 	pub max_connections: usize,
+}
+
+fn default_max_conns() -> usize {
+	3
 }
 
 /// Database connection service.
@@ -34,19 +40,22 @@ pub struct DatabaseService {
 }
 
 impl DatabaseService {
-	pub async fn new(config: &DatabaseConfig) -> DatabaseResult<Self> {
+	pub async fn new(config: &DatabaseConfig, redis: &RedisService) -> Result<Self> {
 		let manager = SqlConnectionManager(config.to_owned());
 		let pool = Pool::builder(manager)
 			.max_size(config.max_connections)
-			.build()?;
-
-		// TODO: hold global migration lock
+			.build()
+			.map_err(DatabaseError::from)?;
 
 		{
+			let _lock = redis.lock("sql-migration", Duration::minutes(5)).await?;
+
 			let _span = info_span!("running pending migrations").entered();
+			info!("running database migrations");
 			let conn = pool.manager().create().await?;
 			let versions = spawn_blocking(move || run_migrations(conn))
-				.await?
+				.await
+				.map_err(DatabaseError::from)?
 				.map_err(DatabaseError::MigrationError)?;
 			for version in versions {
 				warn!(%version, "database migration applied");
@@ -69,8 +78,8 @@ impl DatabaseService {
 		Ok(db)
 	}
 
-	pub async fn get(&self) -> DatabaseResult<SqlConnRef> {
-		Ok(self.pool.get().await?)
+	pub async fn get(&self) -> Result<SqlConnRef> {
+		Ok(self.pool.get().await.map_err(DatabaseError::from)?)
 	}
 }
 
@@ -93,12 +102,10 @@ impl Manager for SqlConnectionManager {
 
 	fn create(
 		&self,
-	) -> impl Future<Output = DatabaseResult<BoxedSqlConn>> + Send {
+	) -> impl Future<Output = std::result::Result<BoxedSqlConn, DatabaseError>> + Send {
 		async {
 			let url = &self.0.url;
-			if url.starts_with("postgresql://")
-				|| url.starts_with("postgres://")
-			{
+			if url.starts_with("postgresql://") || url.starts_with("postgres://") {
 				AsyncPgConnection::establish(&url)
 					.await
 					.map(BoxedSqlConn::Pg)
@@ -147,14 +154,10 @@ pub enum DatabaseError {
 	UnknownUrlSchema(String),
 }
 
-pub type DatabaseResult<T> = Result<T, DatabaseError>;
-
 impl From<PoolError<DatabaseError>> for DatabaseError {
 	fn from(value: PoolError<DatabaseError>) -> Self {
 		Self::PoolError(match value {
-			PoolError::Timeout(timeout_type) => {
-				PoolError::Timeout(timeout_type)
-			}
+			PoolError::Timeout(timeout_type) => PoolError::Timeout(timeout_type),
 			PoolError::Backend(err) => return err,
 			PoolError::Closed => PoolError::Closed,
 			PoolError::NoRuntimeSpecified => PoolError::NoRuntimeSpecified,

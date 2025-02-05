@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-	database::DatabaseConfig, redis::RedisConfig, target::TargetConfig,
-};
+use crate::{database::DatabaseConfig, redis::RedisConfig, target::TargetConfig};
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Deserialize, Serialize)]
 pub struct BackendConfig {

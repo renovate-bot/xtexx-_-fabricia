@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["backend/*", "axis/*", "crayon/crayon"]
+members = ["common/*", "backend/*", "axis/*", "crayon/*"]
 
 [workspace.dependencies]
 tokio = { version = "1.43", features = ["full"] }
@@ -34,6 +34,7 @@ toml = { version = "0.8.19" }
 tracing = { version = "0.1.41", features = ["release_max_level_info"] }
 tracing-subscriber = { version = "0.3.19" }
 futures = { version = "0.3.31" }
-kstring = { version = "2.0.2" }
+kstring = { version = "2.0.2", features = ["serde"] }
 redis = { version = "0.28.2", features = ["tokio-comp", "uuid", "json"] }
 rand = { version = "0.9.0" }
+hex = { version = "0.4.3", features = ["serde"] }

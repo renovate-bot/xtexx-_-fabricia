@@ -6,14 +6,14 @@ use fabricia_backend_service::BackendServices;
 
 use crate::config::CrayonConfig;
 
-pub fn make_router(
-	config: Arc<CrayonConfig>,
-	backend_services: BackendServices,
-) -> Result<Router> {
+mod api;
+
+pub fn make_router(config: Arc<CrayonConfig>, backend_services: BackendServices) -> Result<Router> {
 	let router = Router::new()
 		.route("/", get(handler))
-		.with_state(config)
-		.with_state(backend_services);
+		.nest("/api/v0", api::api_router())
+		.with_state(backend_services)
+		.with_state(config);
 
 	Ok(router)
 }

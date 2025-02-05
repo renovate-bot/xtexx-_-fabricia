@@ -4,9 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+thiserror.workspace = true
 tokio.workspace = true
 diesel.workspace = true
+diesel-async.workspace = true
+fabricia-backend-model = { version = "0.1.0", path = "../../backend/model" }
 fabricia-backend-service = { version = "0.1.0", path = "../../backend/service" }
+fabricia-common-model = { version = "0.1.0", path = "../../common/model" }
+fabricia-crayon-api-model = { version = "0.1.0", path = "../api-model" }
 anyhow.workspace = true
 axum.workspace = true
 serde.workspace = true
@@ -14,3 +19,5 @@ toml.workspace = true
 clap.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+kstring.workspace = true
+hex.workspace = true

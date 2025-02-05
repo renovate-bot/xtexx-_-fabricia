@@ -1,17 +1,21 @@
-dev-pgsql-start:
+dev-pgsql:
 	mkdir -p data/pgsql
 	podman run \
 		--name fabricia-postgres \
 		-e POSTGRES_USER=fabricia \
 		-e POSTGRES_PASSWORD=fabriciadev \
 		-v $(pwd)/data/pgsql:/var/lib/postgresql/data \
-		-d --replace \
-		--user $(whoami) \
+		--replace \
 		-p 19432:5432 \
 		docker.io/library/postgres:alpine
 
-dev-pgsql-stop:
-	podman container rm -f fabricia-postgres
+dev-valkey:
+	mkdir -p data/pgsql
+	podman run \
+		--name fabricia-valkey \
+		--replace \
+		-p 16379:6379 \
+		docker.io/valkey/valkey:alpine
 
 [working-directory: 'data']
 dev-crayon:

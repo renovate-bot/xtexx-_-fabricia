@@ -25,8 +25,8 @@ pub mod target;
 pub struct BackendServices {
 	pub config: Arc<BackendConfig>,
 	pub target: Arc<TargetService>,
-	pub database: Arc<DatabaseService>,
 	pub redis: Arc<RedisService>,
+	pub database: Arc<DatabaseService>,
 	pub job_queue: Arc<JobQueue>,
 	pub branch: Arc<BranchService>,
 }
@@ -36,17 +36,16 @@ impl BackendServices {
 	pub async fn new(config: BackendConfig) -> Result<Self> {
 		let config = Arc::new(config);
 		let target = Arc::new(TargetService::new(&config.target)?);
-		let database = Arc::new(DatabaseService::new(&config.database).await?);
 		let redis = Arc::new(RedisService::new(&config.redis).await?);
+		let database = Arc::new(DatabaseService::new(&config.database, &redis).await?);
 		let job_queue = Arc::new(JobQueue::new(database.clone()));
-		let branch =
-			Arc::new(BranchService::new(database.clone(), job_queue.clone()));
+		let branch = Arc::new(BranchService::new(database.clone(), job_queue.clone()));
 
 		Ok(Self {
 			config,
 			target,
-			database,
 			redis,
+			database,
 			job_queue,
 			branch,
 		})
@@ -55,7 +54,7 @@ impl BackendServices {
 
 /// Backend errors.
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum BackendError {
 	#[error("JSON error: {0}")]
 	JsonError(#[from] serde_json::Error),
 	#[error(transparent)]
@@ -69,9 +68,9 @@ pub enum Error {
 }
 
 /// A specialized [`Result`] for backend errors.
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E = BackendError> = std::result::Result<T, E>;
 
-impl From<diesel::result::Error> for Error {
+impl From<diesel::result::Error> for BackendError {
 	fn from(value: diesel::result::Error) -> Self {
 		Self::DatabaseError(DatabaseError::QueryError(value))
 	}
@@ -79,8 +78,8 @@ impl From<diesel::result::Error> for Error {
 
 #[cfg(test)]
 pub(crate) mod test {
-	use database::DatabaseConfig;
 	use crate::redis::RedisConfig;
+	use database::DatabaseConfig;
 	use target::*;
 
 	use crate::*;

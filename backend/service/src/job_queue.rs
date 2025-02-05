@@ -25,11 +25,7 @@ impl JobQueue {
 		Self { db }
 	}
 
-	pub async fn enqueue(
-		&self,
-		conn: &mut BoxedSqlConn,
-		job: JobCommand,
-	) -> Result<()> {
+	pub async fn enqueue(&self, conn: &mut BoxedSqlConn, job: JobCommand) -> Result<()> {
 		self.enqueue_with_priority(conn, job, 100).await
 	}
 
@@ -87,9 +83,7 @@ impl JobQueue {
 				let cols = conn
 					.execute(
 						update(dsl::job_queue)
-							.filter(
-								dsl::id.eq(id).and(dsl::started_at.is_null()),
-							)
+							.filter(dsl::id.eq(id).and(dsl::started_at.is_null()))
 							.set(dsl::started_at.eq(time)),
 					)
 					.await?;
@@ -111,15 +105,12 @@ impl JobQueue {
 		}
 	}
 
-	pub async fn finish_job(
-		&self,
-		conn: &mut BoxedSqlConn,
-		id: JobRef,
-	) -> Result<()> {
+	pub async fn finish_job(&self, conn: &mut BoxedSqlConn, id: JobRef) -> Result<()> {
 		let cols = conn
-			.execute(delete(dsl::job_queue).filter(
-				dsl::id.eq(XUuidVal(id)).and(dsl::started_at.is_not_null()),
-			))
+			.execute(
+				delete(dsl::job_queue)
+					.filter(dsl::id.eq(XUuidVal(id)).and(dsl::started_at.is_not_null())),
+			)
 			.await?;
 		if cols == 0 {
 			warn!(%id, "job has been aborted or finished by another worker");
