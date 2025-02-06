@@ -5,7 +5,7 @@ use diesel::{
 	prelude::{AsChangeset, Identifiable},
 	update,
 };
-use fabricia_common_model::branch::{BranchStatus, TrackingMode};
+use fabricia_common::branch::{BranchStatus, TrackingMode};
 use kstring::KString;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

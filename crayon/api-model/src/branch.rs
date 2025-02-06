@@ -1,4 +1,4 @@
-use fabricia_common_model::branch::{BranchStatus, TrackingMode};
+use fabricia_common::branch::{BranchStatus, TrackingMode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]

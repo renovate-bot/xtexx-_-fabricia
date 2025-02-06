@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["common/*", "backend", "axis/*", "crayon/*"]
+members = ["common", "backend", "axis/*", "crayon/*"]
 
 [workspace.dependencies]
 tokio = { version = "1.43", features = ["full"] }
@@ -38,3 +38,9 @@ kstring = { version = "2.0.2", features = ["serde"] }
 redis = { version = "0.28.2", features = ["tokio-comp", "uuid", "json"] }
 rand = { version = "0.9.0" }
 hex = { version = "0.4.3", features = ["serde"] }
+git2 = { version = "0.20.0", features = [
+	"https",
+	"ssh",
+	"vendored-libgit2",
+	"vendored-openssl",
+] }

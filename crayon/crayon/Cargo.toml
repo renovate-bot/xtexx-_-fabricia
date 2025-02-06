@@ -9,7 +9,7 @@ tokio.workspace = true
 diesel.workspace = true
 diesel-async.workspace = true
 fabricia-backend = { version = "0.1.0", path = "../../backend" }
-fabricia-common-model = { version = "0.1.0", path = "../../common/model" }
+fabricia-common = { version = "0.1.0", path = "../../common" }
 fabricia-crayon-api-model = { version = "0.1.0", path = "../api-model" }
 anyhow.workspace = true
 axum.workspace = true

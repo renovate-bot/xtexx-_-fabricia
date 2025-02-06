@@ -14,7 +14,7 @@ use fabricia_backend::{
 		utils::WherePredicate,
 	},
 };
-use fabricia_common_model::branch::TrackingMode;
+use fabricia_common::branch::TrackingMode;
 use fabricia_crayon_api_model::branch::*;
 use serde::{Deserialize, Serialize};
 
