@@ -4,7 +4,7 @@ use anyhow::{Result, bail};
 use bus::CrayonBusFactory;
 use clap::Parser;
 use config::CrayonConfig;
-use fabricia_backend_service::BackendServices;
+use fabricia_backend::BackendServices;
 use tokio::net::{TcpListener, UnixListener};
 use tracing::info;
 

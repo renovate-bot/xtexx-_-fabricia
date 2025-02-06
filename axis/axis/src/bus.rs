@@ -2,12 +2,11 @@
 
 use std::sync::{Arc, OnceLock};
 
-use fabricia_backend_model::bus::{BackendBusMessage, C2ABusMessage};
-use fabricia_backend_service::{
+use fabricia_backend::{
 	Result,
 	bus::{
-		BACKEND_BUS_C2A_CHANNEL, BACKEND_BUS_CHANNEL, BackendBusFactory, BackendBusService,
-		BoxedBusService,
+		BACKEND_BUS_C2A_CHANNEL, BACKEND_BUS_CHANNEL, BackendBusFactory, BackendBusMessage,
+		BackendBusService, BoxedBusService, C2ABusMessage,
 	},
 	redis::{RedisError, RedisService},
 };

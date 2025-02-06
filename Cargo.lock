@@ -500,8 +500,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "fabricia-axis-jobrunner",
- "fabricia-backend-model",
- "fabricia-backend-service",
+ "fabricia-backend",
  "fabricia-common-model",
  "futures",
  "kstring",
@@ -524,15 +523,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "diesel",
- "fabricia-backend-model",
- "fabricia-backend-service",
+ "fabricia-backend",
  "fabricia-common-model",
  "tokio",
  "tracing",
 ]
 
 [[package]]
-name = "fabricia-backend-model"
+name = "fabricia-backend"
 version = "0.1.0"
 dependencies = [
  "deadpool",
@@ -543,26 +541,6 @@ dependencies = [
  "futures",
  "kstring",
  "libsqlite3-sys",
- "serde",
- "serde_json",
- "thiserror",
- "time",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "fabricia-backend-service"
-version = "0.1.0"
-dependencies = [
- "deadpool",
- "diesel",
- "diesel-async",
- "fabricia-backend-model",
- "fabricia-common-model",
- "futures",
- "kstring",
  "rand 0.9.0",
  "redis 0.28.2",
  "rslock",
@@ -593,8 +571,7 @@ dependencies = [
  "clap",
  "diesel",
  "diesel-async",
- "fabricia-backend-model",
- "fabricia-backend-service",
+ "fabricia-backend",
  "fabricia-common-model",
  "fabricia-crayon-api-model",
  "futures",

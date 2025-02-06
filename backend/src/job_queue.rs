@@ -1,19 +1,56 @@
 use std::sync::Arc;
 
-use diesel::{delete, insert_into, prelude::*, update};
-use fabricia_backend_model::db::BoxedSqlConn;
-use fabricia_backend_model::db::schema::job_queue::dsl;
-use fabricia_backend_model::job::{Job, JobRef};
-use fabricia_backend_model::{
-	db::utils::{XJsonVal, XUuidVal},
-	job::JobCommand,
+use diesel::{
+	BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryDsl, delete, insert_into,
+	update,
 };
+use kstring::KString;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use time::{OffsetDateTime, PrimitiveDateTime};
 use tracing::{info, warn};
 use uuid::Uuid;
 
-use crate::{Result, database::DatabaseService};
+use crate::{
+	Result,
+	branch::BranchRef,
+	db::{
+		BoxedSqlConn,
+		schema::job_queue::dsl,
+		service::DatabaseService,
+		utils::{XJsonVal, XUuidVal},
+	},
+};
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[serde(tag = "t", content = "c", rename = "kebab-case")]
+pub enum JobCommand {
+	/// Synchronize metadata of a branch.
+	SyncBranch(BranchRef),
+}
+
+impl JobCommand {
+	pub fn serialize(&self) -> serde_json::Result<(KString, serde_json::Value)> {
+		let mut value = serde_json::to_value(self)?;
+		Ok((
+			KString::from_ref(value["t"].as_str().unwrap()),
+			value.as_object_mut().unwrap().remove("c").unwrap(),
+		))
+	}
+
+	pub fn deserialize(kind: &str, value: serde_json::Value) -> serde_json::Result<Self> {
+		let value = serde_json::json!({ "t": kind, "c": value });
+		serde_json::from_value(value)
+	}
+}
+
+pub type JobRef = Uuid;
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Job {
+	pub id: JobRef,
+	pub command: JobCommand,
+}
 
 #[derive(Debug)]
 pub struct JobQueue {
@@ -144,9 +181,8 @@ pub enum JobQueueError {
 #[cfg(test)]
 mod test {
 	use diesel::QueryDsl;
-	use fabricia_backend_model::{db::schema::job_queue::dsl, job::JobCommand};
 
-	use crate::test::test_env;
+	use crate::{db::schema::job_queue::dsl, job_queue::JobCommand, test::test_env};
 
 	#[tokio::test]
 	async fn test_enqueue() {

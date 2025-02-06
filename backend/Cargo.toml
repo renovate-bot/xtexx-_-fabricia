@@ -1,5 +1,5 @@
 [package]
-name = "fabricia-backend-model"
+name = "fabricia-backend"
 version = "0.1.0"
 edition = "2024"
 
@@ -14,11 +14,14 @@ libsqlite3-sys = { version = "0.31", features = ["bundled"] }
 uuid.workspace = true
 time.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 tracing.workspace = true
 futures.workspace = true
-serde_json.workspace = true
 kstring.workspace = true
-fabricia-common-model = { version = "0.1.0", path = "../../common/model" }
-
-[dev-dependencies]
+fabricia-common-model = { version = "0.1.0", path = "../common/model" }
 tokio.workspace = true
+redis.workspace = true
+rand.workspace = true
+rslock = { version = "0.6.0", default-features = false, features = [
+	"tokio-comp",
+] }

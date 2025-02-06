@@ -10,8 +10,7 @@ clap.workspace = true
 diesel.workspace = true
 diesel-async.workspace = true
 fabricia-axis-jobrunner = { version = "0.1.0", path = "../jobrunner" }
-fabricia-backend-model = { version = "0.1.0", path = "../../backend/model" }
-fabricia-backend-service = { version = "0.1.0", path = "../../backend/service" }
+fabricia-backend = { version = "0.1.0", path = "../../backend" }
 fabricia-common-model = { version = "0.1.0", path = "../../common/model" }
 futures.workspace = true
 kstring.workspace = true

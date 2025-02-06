@@ -6,14 +6,14 @@ use axum::{
 	http::StatusCode,
 };
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, Queryable, Selectable};
-use fabricia_backend_model::{
-	branch::*,
+use fabricia_backend::{
+	branch::{BranchConfigInfo, SqlBranchStatus, SqlTrackingMode},
 	db::{
 		schema::{self, branch::dsl},
+		service::SqlConnRef,
 		utils::WherePredicate,
 	},
 };
-use fabricia_backend_service::{branch::BranchConfigInfo, database::SqlConnRef};
 use fabricia_common_model::branch::TrackingMode;
 use fabricia_crayon_api_model::branch::*;
 use serde::{Deserialize, Serialize};

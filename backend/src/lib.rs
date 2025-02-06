@@ -5,7 +5,7 @@ use std::sync::Arc;
 use branch::{BranchError, BranchService};
 use bus::{BackendBusFactory, BoxedBusService};
 use config::BackendConfig;
-use database::{DatabaseError, DatabaseService};
+use db::service::{DatabaseError, DatabaseService};
 use job_queue::{JobQueue, JobQueueError};
 use redis::{RedisError, RedisService};
 use target::TargetService;
@@ -14,8 +14,9 @@ use thiserror::Error;
 pub mod branch;
 pub mod bus;
 pub mod config;
-pub mod database;
+pub mod db;
 pub mod job_queue;
+pub mod package;
 pub mod redis;
 pub mod target;
 
@@ -87,9 +88,8 @@ impl From<diesel::result::Error> for BackendError {
 #[cfg(test)]
 pub(crate) mod test {
 	use crate::redis::RedisConfig;
-	use bus::BackendBusService;
-	use database::DatabaseConfig;
-	use fabricia_backend_model::bus::{BackendBusMessage, C2ABusMessage};
+	use bus::{BackendBusMessage, BackendBusService, C2ABusMessage};
+	use db::service::DatabaseConfig;
 	use futures::{
 		FutureExt,
 		future::{BoxFuture, ready},

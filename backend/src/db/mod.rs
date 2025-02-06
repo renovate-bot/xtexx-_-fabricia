@@ -22,6 +22,7 @@ use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use futures::future::{BoxFuture, FutureExt, ready};
 
 pub mod schema;
+pub mod service;
 pub mod utils;
 
 /// A specialized SQL backend.

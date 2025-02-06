@@ -9,7 +9,7 @@ use bus::AxisBusFactory;
 use clap::Parser;
 use config::AxisConfig;
 use fabricia_axis_jobrunner::JobRunner;
-use fabricia_backend_service::BackendServices;
+use fabricia_backend::BackendServices;
 use tokio::net::{TcpListener, UnixListener};
 use tracing::info;
 

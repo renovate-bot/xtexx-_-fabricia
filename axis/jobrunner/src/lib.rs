@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use fabricia_backend_model::job::JobCommand;
-use fabricia_backend_service::BackendServices;
+use fabricia_backend::{BackendServices, job_queue::JobCommand};
 use tokio::sync::Notify;
 use tracing::{Instrument, debug, error, info, info_span};
 

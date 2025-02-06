@@ -3,13 +3,14 @@
 use std::{fmt::Debug, ops::Deref};
 
 use deadpool::managed::{Manager, Object, Pool, PoolError, RecycleError, RecycleResult};
-use fabricia_backend_model::bus::LockKey;
 use rand::Rng;
 use redis::{Client, Pipeline, aio::MultiplexedConnection};
 use rslock::{Lock, LockManager};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use time::Duration;
+
+use crate::branch::BranchRef;
 
 /// Configuration for [`RedisService`].
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
@@ -137,6 +138,28 @@ impl Manager for RedisManager {
 		} else {
 			Err(RecycleError::message("Invalid PING response"))
 		}
+	}
+}
+
+/// Key for distributed locking
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub enum LockKey {
+	Branch(BranchRef),
+	Misc(&'static str),
+}
+
+impl LockKey {
+	pub fn to_key(&self) -> String {
+		match self {
+			LockKey::Branch(branch) => format!("lock:branch:{}", branch),
+			LockKey::Misc(key) => format!("lock:misc:{}", key),
+		}
+	}
+}
+
+impl From<&'static str> for LockKey {
+	fn from(value: &'static str) -> Self {
+		Self::Misc(value)
 	}
 }
 

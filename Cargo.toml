@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["common/*", "backend/*", "axis/*", "crayon/*"]
+members = ["common/*", "backend", "axis/*", "crayon/*"]
 
 [workspace.dependencies]
 tokio = { version = "1.43", features = ["full"] }

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use axum::{Router, routing::get};
 
-use crate::{config::CrayonConfig, CrayonServices};
+use crate::CrayonServices;
 
 mod api;
 

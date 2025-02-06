@@ -3,7 +3,6 @@ use std::fmt::Debug;
 use deadpool::managed::{Manager, Object, Pool, PoolError, RecycleError, RecycleResult};
 use diesel::{Connection, ConnectionError, SqliteConnection};
 use diesel_async::{AsyncConnection, AsyncPgConnection};
-use fabricia_backend_model::db::{BoxedSqlConn, run_migrations};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use time::Duration;
@@ -11,6 +10,8 @@ use tokio::task::spawn_blocking;
 use tracing::{info, info_span, warn};
 
 use crate::{Result, redis::RedisService};
+
+use super::BoxedSqlConn;
 
 /// Configuration for [`DatabaseService`].
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
@@ -53,7 +54,7 @@ impl DatabaseService {
 			let _span = info_span!("running pending migrations").entered();
 			info!("running database migrations");
 			let conn = pool.manager().create().await?;
-			let versions = spawn_blocking(move || run_migrations(conn))
+			let versions = spawn_blocking(move || super::run_migrations(conn))
 				.await
 				.map_err(DatabaseError::from)?
 				.map_err(DatabaseError::MigrationError)?;
@@ -71,8 +72,7 @@ impl DatabaseService {
 		#[cfg(test)]
 		{
 			let mut conn = db.get().await?;
-			fabricia_backend_model::db::run_migrations_sqlite(&mut conn)
-				.map_err(DatabaseError::MigrationError)?;
+			super::run_migrations_sqlite(&mut conn).map_err(DatabaseError::MigrationError)?;
 		}
 
 		Ok(db)

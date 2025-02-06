@@ -2,7 +2,7 @@ use axum::{
 	http::StatusCode,
 	response::{AppendHeaders, IntoResponse, Response},
 };
-use fabricia_backend_service::BackendError;
+use fabricia_backend::BackendError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

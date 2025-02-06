@@ -1,8 +1,11 @@
 //! Backend bus
 
+use std::{fmt::Debug, sync::Arc};
+
+use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
-use crate::branch::BranchRef;
+use crate::{Result, redis::RedisService};
 
 /// A backend bus message that can be broadcasted across the backend bus.
 ///
@@ -24,24 +27,19 @@ pub enum C2ABusMessage {
 	ResumeJobRunner,
 }
 
-/// Key for distributed locking
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub enum LockKey {
-	Branch(BranchRef),
-	Misc(&'static str),
+pub trait BackendBusService
+where
+	Self: Send + Sync + Debug,
+{
+	fn broadcast(&self, message: BackendBusMessage) -> BoxFuture<'_, Result<()>>;
+	fn send_c2a(&self, message: C2ABusMessage) -> BoxFuture<'_, Result<()>>;
 }
 
-impl LockKey {
-	pub fn to_key(&self) -> String {
-		match self {
-			LockKey::Branch(branch) => format!("lock:branch:{}", branch),
-			LockKey::Misc(key) => format!("lock:misc:{}", key),
-		}
-	}
+pub type BoxedBusService = Box<dyn BackendBusService + 'static>;
+
+pub trait BackendBusFactory {
+	fn construct(self, redis: Arc<RedisService>) -> BoxFuture<'static, Result<BoxedBusService>>;
 }
 
-impl From<&'static str> for LockKey {
-	fn from(value: &'static str) -> Self {
-		Self::Misc(value)
-	}
-}
+pub const BACKEND_BUS_CHANNEL: &str = "bus:backend";
+pub const BACKEND_BUS_C2A_CHANNEL: &str = "bus:c2a";
