@@ -28,6 +28,12 @@ fn default_max_conns() -> usize {
 	3
 }
 
+impl RedisConfig {
+	pub async fn make_client(&self) -> Result<Client, redis::RedisError> {
+		Ok(Client::open(self.url.as_str())?)
+	}
+}
+
 pub struct RedisService {
 	pool: Pool<RedisManager>,
 	locker: LockManager,
@@ -47,6 +53,10 @@ impl RedisService {
 
 	pub async fn get(&self) -> RedisResult<RedisConnRef> {
 		Ok(self.pool.get().await?)
+	}
+
+	pub async fn make_client(&self) -> RedisResult<Client> {
+		Ok(self.pool.manager().0.make_client().await?)
 	}
 
 	pub async fn lock<K: Into<LockKey>>(&self, key: K, ttl: Duration) -> RedisResult<LockGuard> {
@@ -101,7 +111,10 @@ impl Manager for RedisManager {
 	type Error = redis::RedisError;
 
 	async fn create(&self) -> Result<Self::Type, Self::Error> {
-		Ok(Client::open(self.0.url.as_str())?
+		Ok(self
+			.0
+			.make_client()
+			.await?
 			.get_multiplexed_tokio_connection()
 			.await?)
 	}

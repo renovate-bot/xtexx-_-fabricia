@@ -13,10 +13,12 @@ use fabricia_backend_model::{
 		utils::WherePredicate,
 	},
 };
-use fabricia_backend_service::{BackendServices, branch::BranchConfigInfo, database::SqlConnRef};
+use fabricia_backend_service::{branch::BranchConfigInfo, database::SqlConnRef};
 use fabricia_common_model::branch::TrackingMode;
 use fabricia_crayon_api_model::branch::*;
 use serde::{Deserialize, Serialize};
+
+use crate::CrayonServices;
 
 use super::{
 	auth::AuthRequired,
@@ -24,9 +26,9 @@ use super::{
 };
 
 pub async fn list_branches(
-	State(backend): State<BackendServices>,
+	State(services): State<CrayonServices>,
 ) -> ApiResult<Json<HashMap<String, ApiBranchInfo>>> {
-	let mut db = backend.database.get().await?;
+	let mut db = services.backend.database.get().await?;
 	let result: Vec<SqlApiBranchInfo> = db.load_select(dsl::branch).await?;
 	let mut output = HashMap::with_capacity(result.len());
 	for info in result {
@@ -81,10 +83,10 @@ impl SqlApiBranchInfo {
 }
 
 pub async fn get_branch(
-	State(backend): State<BackendServices>,
+	State(services): State<CrayonServices>,
 	Path(name): Path<String>,
 ) -> ApiResult<Json<ApiBranchInfo>> {
-	let mut db = backend.database.get().await?;
+	let mut db = services.backend.database.get().await?;
 	get_branch_info(&mut db, dsl::name.eq(name)).await
 }
 
@@ -100,20 +102,21 @@ async fn get_branch_info<F: WherePredicate<dsl::branch>>(
 
 pub async fn new_branch(
 	AuthRequired: AuthRequired,
-	State(backend): State<BackendServices>,
+	State(services): State<CrayonServices>,
 	Path(name): Path<String>,
 	Json(info): Json<BranchConfigInfo>,
 ) -> ApiResult<(StatusCode, Json<ApiBranchInfo>)> {
-	if backend.branch.find_id(&name).await?.is_some() {
+	let branch = &services.backend.branch;
+	if branch.find_id(&name).await?.is_some() {
 		return Err(ApiError::CustomRef(
 			StatusCode::NOT_ACCEPTABLE,
 			"branch has already been tracked",
 		));
 	}
 
-	backend.branch.track(&name, info).await?;
+	branch.track(&name, info).await?;
 
-	let mut db = backend.database.get().await?;
+	let mut db = services.backend.database.get().await?;
 	Ok((
 		StatusCode::CREATED,
 		get_branch_info(&mut db, dsl::name.eq(name)).await?,
@@ -122,18 +125,18 @@ pub async fn new_branch(
 
 pub async fn update_branch_config(
 	AuthRequired: AuthRequired,
-	State(backend): State<BackendServices>,
+	State(services): State<CrayonServices>,
 	Path(name): Path<String>,
 	Json(info): Json<BranchConfigInfo>,
 ) -> ApiResult<(StatusCode, Json<ApiBranchInfo>)> {
-	let id = backend
-		.branch
+	let branch = &services.backend.branch;
+	let id = branch
 		.find_id(&name)
 		.await?
 		.or_api_error(StatusCode::NOT_FOUND, "branch not found")?;
-	backend.branch.update_config(id, &info).await?;
+	branch.update_config(id, &info).await?;
 
-	let mut db = backend.database.get().await?;
+	let mut db = services.backend.database.get().await?;
 	Ok((
 		StatusCode::ACCEPTED,
 		get_branch_info(&mut db, dsl::name.eq(name)).await?,
@@ -142,14 +145,14 @@ pub async fn update_branch_config(
 
 pub async fn delete_branch(
 	AuthRequired: AuthRequired,
-	State(backend): State<BackendServices>,
+	State(services): State<CrayonServices>,
 	Path(name): Path<String>,
 ) -> ApiResult<(StatusCode, &'static str)> {
-	let id = backend
-		.branch
+	let branch = &services.backend.branch;
+	let id = branch
 		.find_id(name)
 		.await?
 		.or_api_error(StatusCode::NOT_FOUND, "branch not found")?;
-	backend.branch.untrack(id).await?;
+	branch.untrack(id).await?;
 	Ok((StatusCode::ACCEPTED, "branch deleted"))
 }

@@ -1,11 +1,12 @@
 use axum::{Router, routing::get};
-use fabricia_backend_service::BackendServices;
+
+use crate::CrayonServices;
 
 pub mod auth;
 mod branch;
 pub mod error;
 
-pub fn api_router() -> Router<BackendServices> {
+pub fn api_router() -> Router<CrayonServices> {
 	Router::new()
 		.route("/", get(handler))
 		.route("/branch", get(branch::list_branches))

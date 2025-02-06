@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use branch::{BranchError, BranchService};
+use bus::{BackendBusFactory, BoxedBusService};
 use config::BackendConfig;
 use database::{DatabaseError, DatabaseService};
 use job_queue::{JobQueue, JobQueueError};
@@ -27,28 +28,35 @@ pub struct BackendServices {
 	pub target: Arc<TargetService>,
 	pub redis: Arc<RedisService>,
 	pub database: Arc<DatabaseService>,
+	pub bus: Arc<BoxedBusService>,
 	pub job_queue: Arc<JobQueue>,
 	pub branch: Arc<BranchService>,
 }
 
 impl BackendServices {
-	#[tracing::instrument(skip(config))]
-	pub async fn new(config: BackendConfig) -> Result<Self> {
+	#[tracing::instrument(skip(config, bus))]
+	pub async fn new<Bus>(config: BackendConfig, bus: Bus) -> Result<Self>
+	where
+		Bus: BackendBusFactory,
+	{
 		let config = Arc::new(config);
 		let target = Arc::new(TargetService::new(&config.target)?);
 		let redis = Arc::new(RedisService::new(&config.redis).await?);
 		let database = Arc::new(DatabaseService::new(&config.database, &redis).await?);
+		let bus = Arc::new(bus.construct(redis.clone()).await?);
 		let job_queue = Arc::new(JobQueue::new(database.clone()));
 		let branch = Arc::new(BranchService::new(database.clone(), job_queue.clone()));
-
-		Ok(Self {
+		let services = Self {
 			config,
 			target,
 			redis,
 			database,
+			bus,
 			job_queue,
 			branch,
-		})
+		};
+
+		Ok(services)
 	}
 }
 
@@ -79,7 +87,13 @@ impl From<diesel::result::Error> for BackendError {
 #[cfg(test)]
 pub(crate) mod test {
 	use crate::redis::RedisConfig;
+	use bus::BackendBusService;
 	use database::DatabaseConfig;
+	use fabricia_backend_model::bus::{BackendBusMessage, C2ABusMessage};
+	use futures::{
+		FutureExt,
+		future::{BoxFuture, ready},
+	};
 	use target::*;
 
 	use crate::*;
@@ -105,7 +119,32 @@ pub(crate) mod test {
 				},
 			],
 		};
-		BackendServices::new(config).await.unwrap()
+		BackendServices::new(config, TestingBusFactory)
+			.await
+			.unwrap()
+	}
+
+	#[derive(Debug)]
+	struct TestingBusService;
+
+	impl BackendBusService for TestingBusService {
+		fn broadcast(&self, message: BackendBusMessage) -> BoxFuture<'_, Result<()>> {
+			dbg!(message);
+			ready(Ok(())).boxed()
+		}
+
+		fn send_c2a(&self, message: C2ABusMessage) -> BoxFuture<'_, Result<()>> {
+			dbg!(message);
+			ready(Ok(())).boxed()
+		}
+	}
+
+	struct TestingBusFactory;
+
+	impl BackendBusFactory for TestingBusFactory {
+		fn construct(self, _: Arc<RedisService>) -> BoxFuture<'static, Result<BoxedBusService>> {
+			ready(Ok(Box::new(TestingBusService) as Box<dyn BackendBusService>)).boxed()
+		}
 	}
 
 	#[tokio::test]

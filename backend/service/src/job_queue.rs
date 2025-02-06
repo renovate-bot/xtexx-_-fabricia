@@ -118,6 +118,21 @@ impl JobQueue {
 		}
 		Ok(())
 	}
+
+	/// Returns the approximate count of pending jobs.
+	pub async fn count_pending(&self, max: usize) -> Result<usize> {
+		let mut conn = self.db.get().await?;
+
+		let count: i64 = conn
+			.get_result(
+				dsl::job_queue
+					.count()
+					.filter(dsl::started_at.is_not_null())
+					.limit(max.try_into().unwrap()),
+			)
+			.await?;
+		Ok(count.try_into().unwrap())
+	}
 }
 
 #[derive(Debug, Error)]

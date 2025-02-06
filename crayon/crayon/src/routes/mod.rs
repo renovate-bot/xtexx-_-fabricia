@@ -1,19 +1,15 @@
-use std::sync::Arc;
-
 use anyhow::Result;
 use axum::{Router, routing::get};
-use fabricia_backend_service::BackendServices;
 
-use crate::config::CrayonConfig;
+use crate::{config::CrayonConfig, CrayonServices};
 
 mod api;
 
-pub fn make_router(config: Arc<CrayonConfig>, backend_services: BackendServices) -> Result<Router> {
+pub fn make_router(services: CrayonServices) -> Result<Router> {
 	let router = Router::new()
 		.route("/", get(handler))
 		.nest("/api/v0", api::api_router())
-		.with_state(backend_services)
-		.with_state(config);
+		.with_state(services);
 
 	Ok(router)
 }

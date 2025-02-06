@@ -494,7 +494,24 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 name = "fabricia-axis"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "axum",
+ "clap",
+ "diesel",
+ "diesel-async",
+ "fabricia-axis-jobrunner",
+ "fabricia-backend-model",
+ "fabricia-backend-service",
+ "fabricia-common-model",
+ "futures",
+ "kstring",
+ "redis 0.28.2",
+ "serde",
+ "serde_json",
  "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -504,6 +521,15 @@ version = "0.1.0"
 [[package]]
 name = "fabricia-axis-jobrunner"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "diesel",
+ "fabricia-backend-model",
+ "fabricia-backend-service",
+ "fabricia-common-model",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "fabricia-backend-model"
@@ -571,9 +597,12 @@ dependencies = [
  "fabricia-backend-service",
  "fabricia-common-model",
  "fabricia-crayon-api-model",
+ "futures",
  "hex",
  "kstring",
+ "redis 0.28.2",
  "serde",
+ "serde_json",
  "thiserror",
  "tokio",
  "toml",

@@ -4,3 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow.workspace = true
+diesel.workspace = true
+fabricia-backend-model = { version = "0.1.0", path = "../../backend/model" }
+fabricia-backend-service = { version = "0.1.0", path = "../../backend/service" }
+fabricia-common-model = { version = "0.1.0", path = "../../common/model" }
+tokio.workspace = true
+tracing.workspace = true

@@ -1,12 +1,14 @@
 use std::{fs, path::PathBuf, sync::Arc};
 
 use anyhow::{Result, bail};
+use bus::CrayonBusFactory;
 use clap::Parser;
 use config::CrayonConfig;
 use fabricia_backend_service::BackendServices;
 use tokio::net::{TcpListener, UnixListener};
 use tracing::info;
 
+mod bus;
 mod config;
 mod routes;
 
@@ -31,12 +33,18 @@ async fn main() -> Result<()> {
 	info!("loaded configuration from file: {:?}", config_path);
 
 	info!("initializing backend services ...");
-	let backend_services = BackendServices::new(config.clone().try_into()?).await?;
+	let backend_services =
+		BackendServices::new(config.clone().try_into()?, CrayonBusFactory).await?;
 	info!("initialized backend services");
+	let services = CrayonServices {
+		config,
+		backend: Arc::new(backend_services),
+	};
 
-	let router = routes::make_router(Arc::new(config.clone()), backend_services)?;
+	tokio::spawn(bus::handle_bus_message(services.clone()));
 
-	let listen_addr = config.web.listen;
+	let listen_addr = services.config.web.listen.clone();
+	let router = routes::make_router(services)?;
 	if let Some(path) = listen_addr.strip_prefix("unix://") {
 		let path = PathBuf::from(path);
 		_ = fs::remove_file(&path);
@@ -54,4 +62,10 @@ async fn main() -> Result<()> {
 	}
 
 	Ok(())
+}
+
+#[derive(Debug, Clone)]
+pub struct CrayonServices {
+	pub config: CrayonConfig,
+	pub backend: Arc<BackendServices>,
 }
