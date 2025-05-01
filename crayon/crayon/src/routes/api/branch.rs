@@ -153,6 +153,6 @@ pub async fn delete_branch(
 		.find_id(name)
 		.await?
 		.or_api_error(StatusCode::NOT_FOUND, "branch not found")?;
-	branch.untrack(id).await?;
+	branch.enqueue_untrack(id).await?;
 	Ok((StatusCode::ACCEPTED, "branch deleted"))
 }

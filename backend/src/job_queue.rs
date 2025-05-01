@@ -27,6 +27,8 @@ use crate::{
 pub enum JobCommand {
 	/// Synchronize metadata of a branch.
 	SyncBranch(BranchRef),
+	/// Stop tracking a branch and remove related data.
+	UntrackBranch(BranchRef),
 }
 
 impl JobCommand {

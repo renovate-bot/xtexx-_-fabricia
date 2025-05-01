@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use diesel::{
-	ExpressionMethods, OptionalExtension, QueryDsl, delete, insert_into,
+	ExpressionMethods, OptionalExtension, QueryDsl, insert_into,
 	prelude::{AsChangeset, Identifiable},
 	update,
 };
@@ -205,21 +205,12 @@ impl BranchService {
 	}
 
 	/// Untracks a new branch.
-	pub async fn untrack(&self, id: BranchRef) -> Result<()> {
+	pub async fn enqueue_untrack(&self, id: BranchRef) -> Result<()> {
 		let mut conn = self.db.get().await?;
-
-		conn.transaction::<(), crate::BackendError, _>(async |conn| {
-			non_zero_or_not_found(
-				conn.execute(delete(dsl::branch).filter(dsl::id.eq(id)))
-					.await?,
-				id,
-			)?;
-
-			Ok(())
-		})
-		.await?;
-		info!(id, "untracked branch");
-
+		self.job_queue
+			.enqueue(&mut conn, JobCommand::UntrackBranch(id))
+			.await?;
+		info!(id, "requested to untracked branch");
 		Ok(())
 	}
 

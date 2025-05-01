@@ -524,6 +524,8 @@ dependencies = [
  "fabricia-backend",
  "fabricia-common",
  "git2",
+ "kstring",
+ "serde",
  "tokio",
  "tracing",
 ]

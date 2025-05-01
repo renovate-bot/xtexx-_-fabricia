@@ -9,5 +9,7 @@ diesel.workspace = true
 fabricia-backend = { version = "0.1.0", path = "../../backend" }
 fabricia-common = { version = "0.1.0", path = "../../common" }
 git2.workspace = true
+kstring.workspace = true
+serde.workspace = true
 tokio.workspace = true
 tracing.workspace = true

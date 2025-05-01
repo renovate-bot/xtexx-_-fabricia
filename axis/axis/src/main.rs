@@ -8,7 +8,7 @@ use anyhow::{Result, bail};
 use bus::AxisBusFactory;
 use clap::Parser;
 use config::AxisConfig;
-use fabricia_axis_jobrunner::JobRunner;
+use fabricia_axis_jobrunner::{git::GitService, JobRunner};
 use fabricia_backend::BackendServices;
 use tokio::net::{TcpListener, UnixListener};
 use tracing::info;
@@ -46,8 +46,9 @@ async fn main() -> Result<()> {
 		)
 		.await?,
 	);
+	let git = Arc::new(GitService::new(config.git.clone())?);
 	info!("initializing runner service ...");
-	let runner = JobRunner::new(backend_services.clone())?;
+	let runner = JobRunner::new(backend_services.clone(), git)?;
 	let services = AxisServices {
 		config: Arc::new(config),
 		backend: backend_services,

@@ -1,3 +1,4 @@
+use fabricia_axis_jobrunner::git::GitTreeConfig;
 use fabricia_backend::{
 	config::BackendConfig, db::service::DatabaseConfig, redis::RedisConfig, target::TargetConfig,
 };
@@ -10,6 +11,7 @@ pub struct AxisConfig {
 	pub redis: RedisConfig,
 	pub target: Vec<TargetConfig>,
 	pub runners: usize,
+	pub git: GitTreeConfig,
 }
 
 impl TryFrom<AxisConfig> for BackendConfig {

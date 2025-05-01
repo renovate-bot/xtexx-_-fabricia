@@ -2,8 +2,12 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use fabricia_backend::{BackendServices, job_queue::JobCommand};
+use git::GitService;
 use tokio::sync::Notify;
 use tracing::{Instrument, debug, error, info, info_span};
+
+mod branch;
+pub mod git;
 
 #[derive(Debug)]
 pub struct JobRunner {
@@ -11,13 +15,15 @@ pub struct JobRunner {
 	notifier: Notify,
 	/// Backend services
 	backend: Arc<BackendServices>,
+	git: Arc<GitService>,
 }
 
 impl JobRunner {
-	pub fn new(backend: Arc<BackendServices>) -> Result<Self> {
+	pub fn new(backend: Arc<BackendServices>, git: Arc<GitService>) -> Result<Self> {
 		Ok(Self {
 			notifier: Notify::const_new(),
 			backend,
+			git,
 		})
 	}
 
@@ -30,11 +36,13 @@ impl JobRunner {
 
 			let result = async {
 				while let Some(job) = self.backend.job_queue.fetch_and_start().await? {
+					info!(job = %job.id, "starting job");
 					let mut db = self.backend.database.get().await?;
 					self.exec(job.command)
 						.instrument(info_span!("execute job", job = %job.id))
 						.await?;
 					self.backend.job_queue.finish_job(&mut db, job.id).await?;
+					info!(job = %job.id, "finished job");
 				}
 				Ok::<_, anyhow::Error>(())
 			}
@@ -76,8 +84,12 @@ impl JobRunner {
 	/// Runs a job command.
 	async fn exec(&self, job: JobCommand) -> Result<()> {
 		match job {
-			JobCommand::SyncBranch(branch) => todo!(),
+			JobCommand::SyncBranch(branch) => {
+				branch::sync_branch(&self.backend, &self.git, branch).await
+			}
+			JobCommand::UntrackBranch(branch) => {
+				branch::untrack_branch(&self.backend, branch).await
+			}
 		}
-		Ok(())
 	}
 }
